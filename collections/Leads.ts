@@ -42,9 +42,12 @@ export const Leads: CollectionConfig = {
     ],
   },
   fields: [
-    { name: 'name', type: 'text', admin: { readOnly: true } },
-    { name: 'phone', type: 'text', admin: { readOnly: true } },
-    { name: 'email', type: 'text', admin: { readOnly: true } },
+    // M8: contact fields (name/phone/email) are editable in the detail view.
+    // Tenant-scoped write access (collection-level) still governs API updates;
+    // `message` stays read-only as the original submitted copy.
+    { name: 'name', type: 'text' },
+    { name: 'phone', type: 'text' },
+    { name: 'email', type: 'text' },
     { name: 'message', type: 'textarea', admin: { readOnly: true } },
     {
       name: 'idempotencyKey',
