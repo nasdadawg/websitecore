@@ -6,7 +6,11 @@ export const Leads: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'phone', 'status', 'nextFollowUp', 'dealValue', 'createdAt'],
+    // M6: search by name/phone/email in the list view.
+    listSearchableFields: ['name', 'phone', 'email'],
   },
+  // M6: newest-first by default (top-level collection option in Payload 3).
+  defaultSort: '-createdAt',
   access: {
     read: tenantScopedRead,
     // Creation is trusted-server-side only (intake route / seed, both via
