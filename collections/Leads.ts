@@ -8,6 +8,10 @@ export const Leads: CollectionConfig = {
     defaultColumns: ['name', 'phone', 'status', 'nextFollowUp', 'dealValue', 'createdAt'],
     // M6: search by name/phone/email in the list view.
     listSearchableFields: ['name', 'phone', 'email'],
+    // M7: quick-filter links above the list.
+    components: {
+      beforeListTable: [{ path: '@/components/LeadListFilters#LeadListFilters' }],
+    },
   },
   // M6: newest-first by default (top-level collection option in Payload 3).
   defaultSort: '-createdAt',
