@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# payload test artifacts
+test-payload*.db
+
+# keep the env template committed
+!.env.example
