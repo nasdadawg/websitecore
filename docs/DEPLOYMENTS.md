@@ -11,14 +11,11 @@ Git history was rewritten to correct the author/committer email
 commit equivalents are listed alongside the Vercel-recorded SHAs below.
 
 ## M8 — Editable lead contact fields
-- Current Git commit: b2d14d7176d709bcb903b22c9acb3c0c76fc5a78
+- Vercel-recorded commit SHA: b2d14d7176d709bcb903b22c9acb3c0c76fc5a78
+  (githubCommitSha — matches the local HEAD/worktree deployed)
 - Status: READY
 - Vercel deployment: flow-1bll4g0ss-nasdadawgs-projects.vercel.app
 - Production alias: flow-ruby-two.vercel.app
-- Note: Vercel CLI deployment metadata did not attach a gitCommitSha
-  after the history rewrite, so the Git identifier above is the clean
-  local HEAD/worktree that was deployed, not Vercel-recorded commit
-  metadata.
 - Rollback target (previous production): flow-ggf4hqujb-nasdadawgs-projects.vercel.app (M7)
 
 ## M7 — Quick lead filters
@@ -35,7 +32,14 @@ commit equivalents are listed alongside the Vercel-recorded SHAs below.
 ## Operational notes
 - GitHub origin is configured and synchronized
   (git@github.com:nasdadawg/websitecore.git, branch main).
-- Future commits use the corrected Git author/committer email.
+- The Vercel project is connected to GitHub (nasdadawg/websitecore):
+  pushes to that repo trigger Production deployments (auto-deploy),
+  in addition to manual CLI deploys.
+- Vercel metadata schema: GitHub-connected deployments record the commit
+  under `githubCommit*` (M8 onward); pre-connection deployments (M7 and
+  earlier) record it under `gitCommit*`.
+- Future commits use the corrected Git author/committer email (must
+  match the connected GitHub account or deploys are blocked).
 - Before a future Production deployment, record both:
   a) the local HEAD SHA, and
   b) the resulting Vercel deployment identifier/alias.
