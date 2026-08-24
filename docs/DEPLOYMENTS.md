@@ -32,14 +32,14 @@ commit equivalents are listed alongside the Vercel-recorded SHAs below.
 ## Operational notes
 - GitHub origin is configured and synchronized
   (git@github.com:nasdadawg/websitecore.git, branch main).
-- The Vercel project is connected to GitHub (nasdadawg/websitecore):
-  pushes to that repo trigger Production deployments (auto-deploy),
-  in addition to manual CLI deploys.
-- Vercel metadata schema: GitHub-connected deployments record the commit
-  under `githubCommit*` (M8 onward); pre-connection deployments (M7 and
-  earlier) record it under `gitCommit*`.
-- Future commits use the corrected Git author/committer email (must
-  match the connected GitHub account or deploys are blocked).
+- The GitHub remote exists purely for backup/history. No Vercel git
+  integration is connected, so pushes do not trigger auto-deploys —
+  Production deploys happen only via an explicit `vercel --prod` CLI
+  command.
+- Vercel metadata schema: once the local GitHub remote existed, the CLI
+  attached `githubCommit*` metadata (M8 onward); earlier deploys, made
+  before the remote was added, record the commit under `gitCommit*`.
+- Future commits use the corrected Git author/committer email.
 - Before a future Production deployment, record both:
   a) the local HEAD SHA, and
   b) the resulting Vercel deployment identifier/alias.
