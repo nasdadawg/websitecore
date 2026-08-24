@@ -1,3 +1,4 @@
+import { APIError } from 'payload';
 import type { CollectionConfig } from 'payload';
 import { leadCreateAccess, tenantScopedRead, tenantScopedWrite } from '../access';
 
@@ -11,6 +12,10 @@ export const Leads: CollectionConfig = {
     // M7: quick-filter links above the list.
     components: {
       beforeListTable: [{ path: '@/components/LeadListFilters#LeadListFilters' }],
+      // M9: guided "complete follow-up" action on the detail view.
+      edit: {
+        beforeDocumentControls: [{ path: '@/components/CompleteFollowUp#CompleteFollowUp' }],
+      },
     },
   },
   // M6: newest-first by default (top-level collection option in Payload 3).
@@ -25,6 +30,47 @@ export const Leads: CollectionConfig = {
     delete: () => false,
   },
   hooks: {
+    // M9: guided follow-up completion. `_completeFollowUp` is a transient
+    // marker sent by the CompleteFollowUp detail-view action — it is NOT a
+    // schema field, so it never persists and never participates in access
+    // control. The marker gates exactly-one-of validation only when present.
+    beforeValidate: [
+      ({ data, operation }) => {
+        if (operation !== 'update' || !data) return data;
+        const d = data as Record<string, unknown>;
+        if (d._completeFollowUp !== true) return data;
+
+        const next = d.nextFollowUp;
+        let isFutureDate = false;
+        if (next != null) {
+          const t = new Date(next as string).getTime();
+          if (!Number.isNaN(t) && t > Date.now()) isFutureDate = true;
+        }
+        const status = d.status;
+        const isTerminalStatus =
+          typeof status === 'string' && ['won', 'lost', 'spam'].includes(status);
+
+        if (isFutureDate && isTerminalStatus) {
+          throw new APIError(
+            'Ambiguous follow-up completion: provide either a future next-follow-up date or a terminal status, not both.',
+            400,
+            null,
+            true,
+          );
+        }
+        if (!isFutureDate && !isTerminalStatus) {
+          throw new APIError(
+            'Follow-up completion requires exactly one of a future next-follow-up date or a terminal status.',
+            400,
+            null,
+            true,
+          );
+        }
+
+        delete d._completeFollowUp; // transient marker must never persist
+        return data;
+      },
+    ],
     beforeChange: [
       ({ data, originalDoc, operation }) => {
         // Tenant ownership is immutable: on update, ignore any client-supplied
