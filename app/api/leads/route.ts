@@ -1,8 +1,7 @@
 import { NextResponse, after } from 'next/server';
 import { getPayload } from 'payload';
 import config from '@/payload.config';
-import { rateLimitLead } from '@/lib/rate-limit';
-import { intakeLead } from '@/lib/leads/intake';
+import { processLeadRequest } from '@/lib/leads/process';
 import { notifyOwner } from '@/lib/leads/notify';
 
 function clientIp(req: Request): string {
@@ -13,27 +12,23 @@ function clientIp(req: Request): string {
 
 /**
  * Secure lead intake — the single most important endpoint.
- * Per API-CONTRACT.md:
- *   1. Rate limit by IP (Upstash, 5/10min) — before anything else.
- *   2. Validate payload (Zod) → 400.
- *   3. Resolve tenant from bearer secret → 401.
- *   4. Idempotency (X-Idempotency-Key) → duplicate returns original 202.
- *   5. Write the lead via Payload Local API (saved before any optional action).
- *   6. Respond 202 immediately.
- *   7. after() → Resend owner notification (failure never un-saves the lead).
+ * Order (M10):
+ *   0. Cheap precheck rate limit by IP (loose flood gate) — before Siteverify.
+ *   1. Require + verify Turnstile token (server-side siteverify) → 400/403.
+ *   2. Real attempt rate limit by IP (5/10min) — only AFTER Turnstile passes.
+ *   3. Validate payload (Zod) → 400.
+ *   4. Resolve tenant from bearer secret → 401.
+ *   5. Idempotency (X-Idempotency-Key) → duplicate returns original 202.
+ *   6. Write the lead via Payload Local API (saved before any optional action).
+ *   7. Respond 202 immediately; after() → Resend owner notification.
+ *
+ * The bot-protection + intake pipeline lives in `lib/leads/process.ts` so it is
+ * unit-testable without a request scope; this handler only maps results to HTTP
+ * and fires the after-response notification.
  */
 export async function POST(req: Request) {
-  // 1. Rate limit before anything else
   const ip = clientIp(req);
-  const rl = await rateLimitLead(ip);
-  if (rl.limited) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } },
-    );
-  }
 
-  // Parse body + headers
   let body: unknown = {};
   try {
     body = await req.json();
@@ -45,10 +40,16 @@ export async function POST(req: Request) {
   const secret = auth.startsWith('Bearer ') ? auth.slice(7).trim() : null;
   const idempotencyKey = req.headers.get('x-idempotency-key');
 
-  // 2-5. Validate → resolve secret → idempotency → write
   const payload = await getPayload({ config });
-  const result = await intakeLead(payload, { secret, idempotencyKey, body });
+  const processed = await processLeadRequest(payload, { ip, secret, idempotencyKey, body });
 
+  if (!processed.ok) {
+    const headers: Record<string, string> = {};
+    if (processed.retryAfterSeconds) headers['Retry-After'] = String(processed.retryAfterSeconds);
+    return NextResponse.json({ error: processed.error }, { status: processed.status, headers });
+  }
+
+  const result = processed.result;
   if (result.status !== 202) {
     return NextResponse.json(
       { error: result.error, ...('issues' in result && result.issues ? { issues: result.issues } : {}) },

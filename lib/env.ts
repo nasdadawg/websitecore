@@ -26,6 +26,8 @@ const envSchema = z.object({
   UPSTASH_REDIS_REST_URL: z.string().default(""),
   UPSTASH_REDIS_REST_TOKEN: z.string().default(""),
 
+  TURNSTILE_SECRET_KEY: z.string().default(""),
+
   APP_URL: z.string().default(""),
   QSTASH_TOKEN: z.string().default(""),
 });
