@@ -161,7 +161,8 @@ async function main() {
   );
   const rethrowAAfter = await payload.findByID({ collection: 'leads', id: rethrowA.id, overrideAccess: true });
   check('client A reassign own lead → tenant remains A', tenantId(rethrowAAfter) === tenantA.id, `tenant=${tenantId(rethrowAAfter)} (expected ${tenantA.id})`);
-  check('client A reassign → update allowed, only tenant protected', reassignAB.ok && rethrowAAfter.name === 'REASSIGN_ATTEMPT', `update ok=${reassignAB.ok}, name=${rethrowAAfter.name}`);
+  check('client A reassign → rejected (tenant membership enforced)', !reassignAB.ok, `update rejected (ok=${reassignAB.ok}, ${reassignAB.errName})`);
+  check('client A reassign → name unchanged (whole update rejected)', rethrowAAfter.name === 'REASSIGN_THROWAWAY_A', `name=${rethrowAAfter.name}`);
   await payload.delete({ collection: 'leads', id: rethrowA.id, overrideAccess: true });
 
   const rethrowB = await payload.create({ collection: 'leads', data: { tenant: tenantB.id, name: 'REASSIGN_THROWAWAY_B', phone: '555-0000', status: 'new' }, overrideAccess: true });
@@ -170,7 +171,8 @@ async function main() {
   );
   const rethrowBAfter = await payload.findByID({ collection: 'leads', id: rethrowB.id, overrideAccess: true });
   check('client B reassign own lead → tenant remains B', tenantId(rethrowBAfter) === tenantB.id, `tenant=${tenantId(rethrowBAfter)} (expected ${tenantB.id})`);
-  check('client B reassign → update allowed, only tenant protected', reassignBA.ok && rethrowBAfter.name === 'REASSIGN_ATTEMPT', `update ok=${reassignBA.ok}, name=${rethrowBAfter.name}`);
+  check('client B reassign → rejected (tenant membership enforced)', !reassignBA.ok, `update rejected (ok=${reassignBA.ok}, ${reassignBA.errName})`);
+  check('client B reassign → name unchanged (whole update rejected)', rethrowBAfter.name === 'REASSIGN_THROWAWAY_B', `name=${rethrowBAfter.name}`);
   await payload.delete({ collection: 'leads', id: rethrowB.id, overrideAccess: true });
   console.log('');
 

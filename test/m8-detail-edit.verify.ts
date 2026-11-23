@@ -183,11 +183,11 @@ async function main() {
     }),
   );
   const immAfter = await payload.findByID({ collection: 'leads', id: imm.id, overrideAccess: true });
-  check('client A edit own lead + attempted reassign → update allowed', updImm.ok, `status=${updImm.status ?? 'n/a'}`);
+  check('client A edit own lead + attempted reassign → rejected', !updImm.ok, `status=${updImm.status ?? 'n/a'} ${updImm.errName}`);
   check('tenant unchanged (A) despite reassign attempt in same request', tenantId(immAfter) === tenantA.id, `tenant=${tenantId(immAfter)} (expected ${tenantA.id})`);
   check(
-    'contact fields still updated despite reassign attempt',
-    immAfter.name === 'M8_IMM_EDITED' && immAfter.phone === '555-2001' && immAfter.email === 'imm@probe.test' && immAfter.status === 'qualified',
+    'contact fields NOT updated (whole update rejected)',
+    immAfter.name === 'M8_IMM_PROBE' && immAfter.phone === '555-2000' && immAfter.email == null && immAfter.status === 'new',
     `name=${immAfter.name} phone=${immAfter.phone} email=${immAfter.email} status=${immAfter.status}`,
   );
   await payload.delete({ collection: 'leads', id: imm.id, overrideAccess: true });

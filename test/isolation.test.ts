@@ -183,15 +183,20 @@ describe('tenant isolation (two real tenants)', () => {
   it('client A cannot reassign own lead to tenant B (tenant immutable)', async () => {
     const { docs } = await payload.find({ collection: 'leads', req: { user: agencyOwner }, overrideAccess: false });
     const aLead = docs.find((d: any) => tenantId(d) === tenantA.id)!;
-    await payload.update({
-      collection: 'leads',
-      id: aLead.id,
-      data: { tenant: tenantB.id, name: 'REASSIGN_ATTEMPT' },
-      req: { user: clientA },
-      overrideAccess: false,
-    });
+    // Payload >=3.90 enforces tenant membership (multi-tenant plugin): a
+    // cross-tenant reassign is REJECTED with a ValidationError instead of
+    // silently stripping the tenant field.
+    await expect(
+      payload.update({
+        collection: 'leads',
+        id: aLead.id,
+        data: { tenant: tenantB.id, name: 'REASSIGN_ATTEMPT' },
+        req: { user: clientA },
+        overrideAccess: false,
+      }),
+    ).rejects.toThrow();
     const after = await payload.findByID({ collection: 'leads', id: aLead.id, overrideAccess: true });
     expect(tenantId(after)).toBe(tenantA.id); // tenant unchanged
-    expect(after.name).toBe('REASSIGN_ATTEMPT'); // but name updated (update allowed)
+    expect(after.name).toBe(aLead.name); // name also unchanged (whole update rejected)
   });
 });
