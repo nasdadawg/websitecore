@@ -10,6 +10,26 @@ Git history was rewritten to correct the author/committer email
 (metadata only; source tree content unchanged), so the current Git
 commit equivalents are listed alongside the Vercel-recorded SHAs below.
 
+## M10 — Turnstile, Sentry, intake hardening + payload/next CVE patch
+- Commit: d64d1513734b74b956cbea8174d7ec18c1aa6ac3 — Turnstile bot protection,
+  Sentry error monitoring + PII scrubbing, intake hardening
+  (lib/turnstile.ts, lib/sentry-scrub.ts, lib/leads/process.ts,
+  sentry.*.config.ts, instrumentation.ts, test/m10-*.verify.ts).
+- Commit: 1b4601a69d4811328c7fd684343da1f997f67923 — CVE patch:
+  payload 3.88.0 → 3.94.1 (CVE-2026-105860 tenant self-assignment,
+  CVE-2026-105864 cross-tenant create), next 16.3.2 → 16.4.6,
+  react 19.2.8 → 19.3.1. Multi-tenant plugin now rejects cross-tenant
+  reassign with a ValidationError (test expectations updated accordingly).
+- Status: PENDING — not deployed. Requires an explicit `vercel --prod`
+  after review (Tier C).
+
+## M9 — Guided lead follow-up completion
+- Vercel deployment (production): flow-awvxl0hk0-nasdadawgs-projects.vercel.app
+- Vercel-recorded commit SHA: faa769c41b26ec5b8a289db621ec447a7fc21d26
+- Status: READY
+- Production alias: flow-ruby-two.vercel.app
+- Rollback target (previous production): flow-1bll4g0ss-nasdadawgs-projects.vercel.app (M8)
+
 ## M8 — Editable lead contact fields
 - Vercel-recorded commit SHA: b2d14d7176d709bcb903b22c9acb3c0c76fc5a78
   (githubCommitSha — matches the local HEAD/worktree deployed)
