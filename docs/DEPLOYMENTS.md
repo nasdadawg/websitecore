@@ -11,17 +11,30 @@ Git history was rewritten to correct the author/committer email
 commit equivalents are listed alongside the Vercel-recorded SHAs below.
 
 ## M10 — Turnstile, Sentry, intake hardening + payload/next CVE patch
-- Commit: d64d1513734b74b956cbea8174d7ec18c1aa6ac3 — Turnstile bot protection,
-  Sentry error monitoring + PII scrubbing, intake hardening
-  (lib/turnstile.ts, lib/sentry-scrub.ts, lib/leads/process.ts,
-  sentry.*.config.ts, instrumentation.ts, test/m10-*.verify.ts).
-- Commit: 1b4601a69d4811328c7fd684343da1f997f67923 — CVE patch:
-  payload 3.88.0 → 3.94.1 (CVE-2026-105860 tenant self-assignment,
-  CVE-2026-105864 cross-tenant create), next 16.3.2 → 16.4.6,
-  react 19.2.8 → 19.3.1. Multi-tenant plugin now rejects cross-tenant
-  reassign with a ValidationError (test expectations updated accordingly).
-- Status: PENDING — not deployed. Requires an explicit `vercel --prod`
-  after review (Tier C).
+- Vercel deployment (production): flow-icowzzlg0-nasdadawgs-projects.vercel.app
+- Vercel-recorded commit SHA: b15d7336c3f0893a0ac353a2c357108140430748
+  (fix: rate limiter fails open on redis error)
+- Status: READY
+- Production alias: flow-ruby-two.vercel.app
+- Rollback target (previous production): flow-awvxl0hk0-nasdadawgs-projects.vercel.app (M9)
+- Commits in this release:
+  - d64d1513734b74b956cbea8174d7ec18c1aa6ac3 — Turnstile bot protection,
+    Sentry error monitoring + PII scrubbing, intake hardening.
+  - 1b4601a69d4811328c7fd684343da1f997f67923 — CVE patch: payload 3.88.0 →
+    3.94.1 (CVE-2026-105860 / CVE-2026-105864), next 16.3.2 → 16.4.6,
+    react 19.2.8 → 19.3.1.
+  - 9d7a315154793a90b6792f9882d1622ecd9fd805 — chore: add .npmrc
+    (legacy-peer-deps=true) so Vercel resolves Payload peer deps.
+  - b15d7336c3f0893a0ac353a2c357108140430748 — fix: rate limiter fails open
+    on redis error (see incident below).
+- Incident (limiter fail-closed): the initial M10 deploy returned 500 on
+  POST /api/leads — the rate limiter (lib/rate-limit.ts) hit the Upstash
+  Redis host `regular-toad-121872.upstash.io`, which had been deleted
+  (DNS NXDOMAIN), and `rl.limit()` threw unhandled before the Turnstile
+  guard ran. Fixed by wrapping `rl.limit()` in try/catch and failing OPEN
+  (Sentry captureException with tag `ratelimit_unavailable`); the Upstash
+  Redis DB was recreated and the env vars updated. Verified live: POST
+  no-token → 400, invalid-token → 403, logs clean (no ENOTFOUND).
 
 ## M9 — Guided lead follow-up completion
 - Vercel deployment (production): flow-awvxl0hk0-nasdadawgs-projects.vercel.app
