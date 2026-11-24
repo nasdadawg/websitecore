@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "verify:all": "npm test && tsx test/m3-isolation.verify.ts && tsx test/m8-detail-edit.verify.ts && tsx test/m9-complete-followup.verify.ts && tsx test/m10-turnstile.verify.ts && tsx test/m10-sentry-scrub.verify.ts",
     "seed": "tsx seed/index.ts"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "@payloadcms/next": "^3.94.1",
     "@payloadcms/plugin-multi-tenant": "^3.94.1",
     "@sentry/nextjs": "^10.70.0",
+    "@sentry/node": "^10.70.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "@upstash/qstash": "^2.11.3",

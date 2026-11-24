@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { captureException } from "@sentry/node";
 import { env } from "@/lib/env";
 
 let ratelimit: Ratelimit | null = null;
@@ -62,15 +63,27 @@ export type RateLimitResult =
  * derived from the client IP (and optionally the tenant id) so one client
  * cannot exhaust the AI token budget.
  */
+function reportRateLimitUnavailable(err: unknown): void {
+  console.error("[rate-limit] unavailable, failing open:", err);
+  captureException(err, { tags: { ratelimit_unavailable: "true" } });
+}
+
 export async function rateLimitLead(identifier: string): Promise<RateLimitResult> {
   const rl = getRatelimit();
   if (!rl) return { limited: false };
 
-  const { success, reset } = await rl.limit(identifier);
-  if (success) return { limited: false };
+  try {
+    const { success, reset } = await rl.limit(identifier);
+    if (success) return { limited: false };
 
-  const retryAfterSeconds = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
-  return { limited: true, retryAfterSeconds };
+    const retryAfterSeconds = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
+    return { limited: true, retryAfterSeconds };
+  } catch (err) {
+    // Fail OPEN: a rate-limit store outage must never take down intake.
+    // Turnstile keeps guarding the endpoint while the limiter is down.
+    reportRateLimitUnavailable(err);
+    return { limited: false };
+  }
 }
 
 /**
@@ -81,9 +94,14 @@ export async function precheckRateLimit(identifier: string): Promise<RateLimitRe
   const rl = getPrecheckRatelimit();
   if (!rl) return { limited: false };
 
-  const { success, reset } = await rl.limit(identifier);
-  if (success) return { limited: false };
+  try {
+    const { success, reset } = await rl.limit(identifier);
+    if (success) return { limited: false };
 
-  const retryAfterSeconds = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
-  return { limited: true, retryAfterSeconds };
+    const retryAfterSeconds = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
+    return { limited: true, retryAfterSeconds };
+  } catch (err) {
+    reportRateLimitUnavailable(err);
+    return { limited: false };
+  }
 }
