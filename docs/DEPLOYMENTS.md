@@ -11,9 +11,9 @@ Git history was rewritten to correct the author/committer email
 commit equivalents are listed alongside the Vercel-recorded SHAs below.
 
 ## M10 — Turnstile, Sentry, intake hardening + payload/next CVE patch
-- Vercel deployment (production): flow-icowzzlg0-nasdadawgs-projects.vercel.app
-- Vercel-recorded commit SHA: b15d7336c3f0893a0ac353a2c357108140430748
-  (fix: rate limiter fails open on redis error)
+- Vercel deployment (production): flow-j52meob66-nasdadawgs-projects.vercel.app
+- Vercel-recorded commit SHA: b1b4fabf48e0cb03d96fdf70ac96113ca8f8f32f
+  (docs commit; code fix SHA = b15d7336c3f0893a0ac353a2c357108140430748)
 - Status: READY
 - Production alias: flow-ruby-two.vercel.app
 - Rollback target (previous production): flow-awvxl0hk0-nasdadawgs-projects.vercel.app (M9)
@@ -35,6 +35,18 @@ commit equivalents are listed alongside the Vercel-recorded SHAs below.
   (Sentry captureException with tag `ratelimit_unavailable`); the Upstash
   Redis DB was recreated and the env vars updated. Verified live: POST
   no-token → 400, invalid-token → 403, logs clean (no ENOTFOUND).
+
+- Token rotation (2026-11-24): Upstash REST token rotated again; re-deployed
+  to pick it up (flow-j52meob66). Post-rotation verification:
+  - A. `npm ls @sentry/node` → single deduped copy @10.70.0 (matches
+    @sentry/nextjs@10.70.0); no pin needed.
+  - B. Deploy flow-j52meob66-nasdadawgs-projects.vercel.app, SHA b1b4fab,
+    READY/PROMOTED.
+  - C. Smoke: /admin/login 200, POST no-token 400, POST invalid-token 403.
+  - D. Rate-limit live (10 rapid no-token POSTs): 10×400, no 429 — FAILED.
+    The no-token path hits the precheck limiter (30 req/10min), not the real
+    quota (5 req/10min, which sits behind Turnstile), so 10 requests stay
+    under the threshold. Logs clean (no ENOTFOUND / fail-open).
 
 ## M9 — Guided lead follow-up completion
 - Vercel deployment (production): flow-awvxl0hk0-nasdadawgs-projects.vercel.app
